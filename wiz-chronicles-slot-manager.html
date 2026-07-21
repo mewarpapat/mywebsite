@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Wiz Chronicles — จัดการสล็อตเสื้อผ้า</title>
+<style>
+  :root{
+    --bg:#0a0a0b;
+    --panel:#141417;
+    --panel-2:#1c1c21;
+    --border:rgba(255,255,255,.08);
+    --border-strong:rgba(255,255,255,.14);
+    --text:#f4f4f5;
+    --muted:#9ca3af;
+    --muted-2:#6b7280;
+    --purple:#a855f7;
+    --purple-2:#7c3aed;
+    --pink:#ec4899;
+    --danger:#ef4444;
+    --danger-bg:rgba(239,68,68,.12);
+    --ok:#22c55e;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:
+      radial-gradient(1200px 600px at 80% -10%, rgba(124,58,237,.18), transparent 60%),
+      radial-gradient(900px 500px at 0% 0%, rgba(236,72,153,.10), transparent 55%),
+      var(--bg);
+    color:var(--text);
+    font-family:"Segoe UI",system-ui,-apple-system,"Noto Sans Thai","Sarabun",Tahoma,sans-serif;
+    min-height:100vh;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1100px;margin:0 auto;padding:28px 20px 80px}
+
+  /* Header */
+  header.top{display:flex;align-items:center;gap:14px;margin-bottom:8px}
+  .logo{
+    width:46px;height:46px;border-radius:13px;flex:0 0 auto;
+    background:linear-gradient(135deg,var(--purple-2),#2563eb);
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 8px 24px rgba(124,58,237,.35);
+    font-size:24px;
+  }
+  .brand h1{margin:0;font-size:26px;font-weight:800;letter-spacing:-.5px}
+  .brand h1 .accent{color:var(--purple)}
+  .brand p{margin:2px 0 0;color:var(--muted);font-size:13px}
+  .subtitle{
+    margin:16px 0 26px;color:var(--muted);font-size:14px;
+    padding:12px 16px;border-radius:12px;background:rgba(168,85,247,.06);
+    border:1px solid rgba(168,85,247,.15);
+  }
+
+  /* Panels */
+  .grid{display:grid;grid-template-columns:1fr;gap:18px}
+  @media(min-width:860px){.grid.two{grid-template-columns:1.15fr .85fr}}
+  .card{
+    background:linear-gradient(180deg,var(--panel),var(--panel-2));
+    border:1px solid var(--border);border-radius:var(--radius);
+    padding:20px;
+  }
+  .card h2{
+    margin:0 0 4px;font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px;
+  }
+  .card h2 .dot{width:9px;height:9px;border-radius:50%;background:var(--purple);box-shadow:0 0 12px var(--purple)}
+  .card .hint{color:var(--muted-2);font-size:12.5px;margin:0 0 16px}
+
+  label{display:block;font-size:12.5px;color:var(--muted);margin:0 0 6px;font-weight:600}
+  input,textarea{
+    width:100%;background:#0d0d10;border:1px solid var(--border-strong);
+    color:var(--text);border-radius:10px;padding:10px 12px;font-size:14px;font-family:inherit;
+    outline:none;transition:border-color .15s,box-shadow .15s;
+  }
+  input:focus,textarea:focus{border-color:var(--purple);box-shadow:0 0 0 3px rgba(168,85,247,.18)}
+  textarea{resize:vertical;min-height:120px;line-height:1.6}
+  input::placeholder,textarea::placeholder{color:#4b5563}
+
+  .row{display:grid;gap:12px}
+  .row.c2{grid-template-columns:1fr 1fr}
+  .row.c3{grid-template-columns:1fr 1fr 1fr}
+  .field{margin-bottom:14px}
+
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    border:none;cursor:pointer;border-radius:10px;font-weight:700;font-size:14px;
+    padding:11px 18px;font-family:inherit;transition:transform .05s,filter .15s,background .15s;
+  }
+  .btn:active{transform:translateY(1px)}
+  .btn-primary{background:linear-gradient(135deg,var(--purple),var(--purple-2));color:#fff;box-shadow:0 8px 22px rgba(124,58,237,.35)}
+  .btn-primary:hover{filter:brightness(1.08)}
+  .btn-ghost{background:#26262c;color:var(--text);border:1px solid var(--border-strong)}
+  .btn-ghost:hover{background:#30303a}
+  .btn-danger{background:var(--danger-bg);color:#fca5a5;border:1px solid rgba(239,68,68,.3)}
+  .btn-danger:hover{background:rgba(239,68,68,.22)}
+  .btn-sm{padding:6px 10px;font-size:12.5px;border-radius:8px}
+  .btn-block{width:100%}
+
+  .preview{
+    margin:14px 0 4px;font-size:13px;color:var(--muted);
+    padding:10px 14px;border-radius:10px;background:#0d0d10;border:1px dashed var(--border-strong);
+  }
+  .preview b{color:var(--purple)}
+  .preview.warn{border-color:rgba(239,68,68,.4);color:#fca5a5}
+
+  /* Table */
+  .table-card{margin-top:18px}
+  .toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+  .count-badge{
+    display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);
+    background:#0d0d10;border:1px solid var(--border);padding:7px 13px;border-radius:999px;
+  }
+  .count-badge b{color:var(--text)}
+  .table-scroll{overflow-x:auto;border:1px solid var(--border);border-radius:12px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:640px}
+  thead th{
+    text-align:left;background:#0d0d10;color:var(--muted);font-weight:600;font-size:12px;
+    padding:11px 12px;border-bottom:1px solid var(--border);white-space:nowrap;text-transform:uppercase;letter-spacing:.4px;
+  }
+  tbody td{padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.05);vertical-align:middle}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr.dup{background:var(--danger-bg)}
+  tbody tr:hover{background:rgba(255,255,255,.03)}
+  tbody tr.dup:hover{background:rgba(239,68,68,.18)}
+  td.slot-cell{font-weight:800;color:var(--purple);font-variant-numeric:tabular-nums}
+  .cell-input{
+    width:100%;background:transparent;border:1px solid transparent;color:var(--text);
+    padding:6px 8px;border-radius:7px;font-size:13.5px;font-family:inherit;
+  }
+  .cell-input:hover{border-color:var(--border)}
+  .cell-input:focus{background:#0d0d10;border-color:var(--purple);box-shadow:0 0 0 2px rgba(168,85,247,.2)}
+  .cell-input.num{width:76px;font-weight:700;color:var(--purple);font-variant-numeric:tabular-nums}
+  .dup-tag{
+    display:inline-block;margin-left:8px;font-size:10.5px;font-weight:700;color:#fca5a5;
+    background:rgba(239,68,68,.18);border:1px solid rgba(239,68,68,.35);padding:1px 7px;border-radius:999px;vertical-align:middle;
+  }
+  .row-actions{display:flex;gap:6px;justify-content:flex-end}
+  .icon-btn{
+    background:transparent;border:1px solid var(--border);color:var(--muted);cursor:pointer;
+    width:30px;height:30px;border-radius:8px;font-size:14px;display:inline-flex;align-items:center;justify-content:center;transition:all .15s;
+  }
+  .icon-btn:hover{color:#fca5a5;border-color:rgba(239,68,68,.4);background:var(--danger-bg)}
+  .empty{padding:44px 20px;text-align:center;color:var(--muted-2);font-size:14px}
+  .empty .big{font-size:34px;margin-bottom:8px;opacity:.5}
+
+  /* Toast */
+  #toast{
+    position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);
+    background:#18181c;border:1px solid var(--border-strong);color:var(--text);
+    padding:12px 20px;border-radius:12px;font-size:14px;font-weight:600;
+    box-shadow:0 12px 40px rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:all .25s;z-index:100;
+    display:flex;align-items:center;gap:10px;max-width:90vw;
+  }
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  #toast.ok{border-color:rgba(34,197,94,.4)}
+  #toast.ok .ic{color:var(--ok)}
+  #toast.err{border-color:rgba(239,68,68,.4)}
+  #toast.err .ic{color:var(--danger)}
+
+  /* Confirm dialog */
+  .overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(3px);
+    display:none;align-items:center;justify-content:center;z-index:120;padding:20px;
+  }
+  .overlay.show{display:flex}
+  .modal{
+    background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--border-strong);
+    border-radius:16px;padding:24px;max-width:400px;width:100%;
+  }
+  .modal h3{margin:0 0 8px;font-size:18px}
+  .modal p{margin:0 0 20px;color:var(--muted);font-size:14px}
+  .modal .actions{display:flex;gap:10px;justify-content:flex-end}
+
+  footer{margin-top:40px;text-align:center;color:var(--muted-2);font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="logo">👕</div>
+    <div class="brand">
+      <h1>Wiz <span class="accent">Chronicles</span></h1>
+      <p>เครื่องมือจัดการสล็อตเสื้อผ้า (Clothing Slot Manager)</p>
+    </div>
+  </header>
+
+  <div class="subtitle">
+    จับคู่ <b>เลขสล็อต ↔ ชื่อโมเดลเสื้อผ้า ↔ โฟลเดอร์</b> — ใส่เองทีละอัน หรือ “รันเลขอัตโนมัติ” เป็นช่วงก็ได้
+    · ข้อมูลถูกเก็บไว้ในเบราว์เซอร์เครื่องนี้เอง (เปิดใหม่ไม่หาย)
+  </div>
+
+  <div class="grid two">
+    <!-- ===== Auto-number ===== -->
+    <section class="card">
+      <h2><span class="dot"></span> รันเลขอัตโนมัติ</h2>
+      <p class="hint">กำหนดเลขสล็อตเริ่มต้น + วางรายชื่อโมเดล แล้วระบบจะไล่เลขสล็อตให้ต่อเนื่องอัตโนมัติ</p>
+
+      <div class="row c2 field">
+        <div>
+          <label>เริ่มที่สล็อต</label>
+          <input type="number" id="autoStart" value="0" min="0" />
+        </div>
+        <div>
+          <label>โฟลเดอร์</label>
+          <input type="text" id="autoFolder" placeholder="เช่น mp_m_freemode_01" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label>รายชื่อโมเดล — บรรทัดละ 1 ชื่อ</label>
+        <textarea id="autoModels" placeholder="shirt_01&#10;shirt_02&#10;jacket_black&#10;hoodie_red&#10;..."></textarea>
+      </div>
+
+      <div class="row c2 field">
+        <div>
+          <label>จากตัวที่ (เว้นว่าง = ตัวแรก)</label>
+          <input type="number" id="autoFrom" min="1" placeholder="1" />
+        </div>
+        <div>
+          <label>ถึงตัวที่ (เว้นว่าง = ตัวสุดท้าย)</label>
+          <input type="number" id="autoTo" min="1" placeholder="ทั้งหมด" />
+        </div>
+      </div>
+
+      <div class="preview" id="autoPreview">กรอกข้อมูลเพื่อดูตัวอย่าง</div>
+      <button class="btn btn-primary btn-block" id="autoGenBtn" style="margin-top:12px">➕ สร้างสล็อต</button>
+    </section>
+
+    <!-- ===== Manual add ===== -->
+    <section class="card">
+      <h2><span class="dot"></span> เพิ่มเอง (Manual)</h2>
+      <p class="hint">ระบุสล็อตทีละอันเอง เมื่ออยากกำหนดโมเดลเฉพาะจุด</p>
+
+      <div class="field">
+        <label>เลขสล็อต</label>
+        <input type="number" id="mSlot" min="0" placeholder="เช่น 12" />
+      </div>
+      <div class="field">
+        <label>ชื่อโมเดลเสื้อผ้า</label>
+        <input type="text" id="mModel" placeholder="เช่น jacket_black" />
+      </div>
+      <div class="field">
+        <label>โฟลเดอร์</label>
+        <input type="text" id="mFolder" placeholder="เช่น mp_m_freemode_01" />
+      </div>
+      <div class="field">
+        <label>หมายเหตุ (ไม่บังคับ)</label>
+        <input type="text" id="mLabel" placeholder="เช่น ชุดตำรวจ" />
+      </div>
+      <button class="btn btn-ghost btn-block" id="manualAddBtn">➕ เพิ่มลงตาราง</button>
+    </section>
+  </div>
+
+  <!-- ===== Table ===== -->
+  <section class="card table-card">
+    <div class="toolbar">
+      <h2 style="margin:0"><span class="dot"></span> รายการสล็อตทั้งหมด</h2>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span class="count-badge">ทั้งหมด <b id="countAll">0</b> สล็อต</span>
+        <span class="count-badge" id="dupBadge" style="display:none;color:#fca5a5;border-color:rgba(239,68,68,.3)">⚠ ซ้ำ <b id="countDup">0</b></span>
+        <button class="btn btn-danger btn-sm" id="clearBtn">🗑 ล้างทั้งหมด</button>
+      </div>
+    </div>
+
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:90px">สล็อต</th>
+            <th>ชื่อโมเดล</th>
+            <th>โฟลเดอร์</th>
+            <th>หมายเหตุ</th>
+            <th style="width:60px;text-align:right">ลบ</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="emptyState">
+      <div class="big">📭</div>
+      ยังไม่มีสล็อต — เพิ่มด้วย “รันเลขอัตโนมัติ” หรือ “เพิ่มเอง” ด้านบน
+    </div>
+  </section>
+
+  <footer>Wiz Chronicles · Clothing Slot Manager · ทำงานในเครื่อง ไม่ต้องต่ออินเทอร์เน็ต</footer>
+</div>
+
+<div id="toast"><span class="ic">✔</span><span id="toastMsg"></span></div>
+
+<div class="overlay" id="confirmOverlay">
+  <div class="modal">
+    <h3>ล้างข้อมูลทั้งหมด?</h3>
+    <p>สล็อตทั้งหมดจะถูกลบและกู้คืนไม่ได้ ต้องการดำเนินการต่อหรือไม่</p>
+    <div class="actions">
+      <button class="btn btn-ghost" id="confirmCancel">ยกเลิก</button>
+      <button class="btn btn-danger" id="confirmOk">ล้างทั้งหมด</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var STORAGE_KEY = "wiz-chronicles-clothing-slots";
+
+  /** @type {{id:string,slot:number,model:string,folder:string,label:string}[]} */
+  var slots = [];
+
+  // ---------- storage ----------
+  function load(){
+    try{
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if(raw){ slots = JSON.parse(raw) || []; }
+    }catch(e){ slots = []; }
+    if(!Array.isArray(slots)) slots = [];
+  }
+  function save(){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(slots)); }
+    catch(e){ toast("บันทึกไม่สำเร็จ (localStorage ปิดอยู่?)","err"); }
+  }
+  function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+  // ---------- logic ----------
+  function parseModels(text){
+    return String(text||"")
+      .split(/\r?\n/)
+      .map(function(s){ return s.trim(); })
+      .filter(function(s){ return s.length > 0; });
+  }
+
+  // ไล่เลขสล็อตต่อเนื่องจาก startSlot จับคู่โมเดลตามลำดับ
+  function autoNumber(startSlot, models, folder){
+    var out = [];
+    for(var i=0;i<models.length;i++){
+      out.push({
+        id: uid(),
+        slot: startSlot + i,
+        model: models[i],
+        folder: folder || "",
+        label: ""
+      });
+    }
+    return out;
+  }
+
+  // ตัดช่วง from..to (นับจาก 1) จากรายการโมเดล
+  function sliceRange(models, from, to){
+    var start = (from && from >= 1) ? from - 1 : 0;
+    var end = (to && to >= 1) ? to : models.length;
+    if(start < 0) start = 0;
+    if(end > models.length) end = models.length;
+    if(end < start) end = start;
+    return models.slice(start, end);
+  }
+
+  function findDuplicates(){
+    var seen = {}, dup = {};
+    slots.forEach(function(s){
+      var k = s.slot;
+      if(seen[k]) dup[k] = true;
+      seen[k] = true;
+    });
+    return dup;
+  }
+
+  // ---------- render ----------
+  var tbody = document.getElementById("tbody");
+  var emptyState = document.getElementById("emptyState");
+
+  function render(){
+    // เรียงตามเลขสล็อต
+    slots.sort(function(a,b){ return a.slot - b.slot; });
+    var dup = findDuplicates();
+
+    tbody.innerHTML = "";
+    if(slots.length === 0){
+      emptyState.style.display = "block";
+    }else{
+      emptyState.style.display = "none";
+      slots.forEach(function(s){
+        var tr = document.createElement("tr");
+        if(dup[s.slot]) tr.className = "dup";
+
+        // slot
+        var tdSlot = document.createElement("td");
+        tdSlot.className = "slot-cell";
+        var inSlot = mkInput(s.slot, "num", "number");
+        inSlot.addEventListener("change", function(){
+          var v = parseInt(inSlot.value,10);
+          s.slot = isNaN(v) ? 0 : v; save(); render();
+        });
+        tdSlot.appendChild(inSlot);
+        if(dup[s.slot]){
+          var tag = document.createElement("span");
+          tag.className = "dup-tag"; tag.textContent = "ซ้ำ";
+          tdSlot.appendChild(tag);
+        }
+        tr.appendChild(tdSlot);
+
+        // model / folder / label
+        tr.appendChild(mkEditableCell(s, "model", "ชื่อโมเดล"));
+        tr.appendChild(mkEditableCell(s, "folder", "โฟลเดอร์"));
+        tr.appendChild(mkEditableCell(s, "label", "—"));
+
+        // delete
+        var tdAct = document.createElement("td");
+        var actWrap = document.createElement("div");
+        actWrap.className = "row-actions";
+        var del = document.createElement("button");
+        del.className = "icon-btn"; del.title = "ลบ"; del.innerHTML = "✕";
+        del.addEventListener("click", function(){
+          slots = slots.filter(function(x){ return x.id !== s.id; });
+          save(); render(); toast("ลบสล็อตแล้ว","ok");
+        });
+        actWrap.appendChild(del);
+        tdAct.appendChild(actWrap);
+        tr.appendChild(tdAct);
+
+        tbody.appendChild(tr);
+      });
+    }
+
+    document.getElementById("countAll").textContent = slots.length;
+    var dupCount = Object.keys(dup).length;
+    var dupBadge = document.getElementById("dupBadge");
+    if(dupCount > 0){
+      dupBadge.style.display = "inline-flex";
+      document.getElementById("countDup").textContent = dupCount;
+    }else{
+      dupBadge.style.display = "none";
+    }
+  }
+
+  function mkInput(val, cls, type){
+    var i = document.createElement("input");
+    i.className = "cell-input" + (cls ? " " + cls : "");
+    i.type = type || "text";
+    i.value = (val === undefined || val === null) ? "" : val;
+    return i;
+  }
+  function mkEditableCell(entry, key, placeholder){
+    var td = document.createElement("td");
+    var inp = mkInput(entry[key], "", "text");
+    inp.placeholder = placeholder;
+    inp.addEventListener("change", function(){
+      entry[key] = inp.value.trim(); save();
+    });
+    td.appendChild(inp);
+    return td;
+  }
+
+  // ---------- auto-number panel ----------
+  var elStart = document.getElementById("autoStart");
+  var elFolder = document.getElementById("autoFolder");
+  var elModels = document.getElementById("autoModels");
+  var elFrom = document.getElementById("autoFrom");
+  var elTo = document.getElementById("autoTo");
+  var elPreview = document.getElementById("autoPreview");
+
+  function currentAutoSelection(){
+    var start = parseInt(elStart.value,10);
+    if(isNaN(start)) start = 0;
+    var all = parseModels(elModels.value);
+    var from = parseInt(elFrom.value,10); if(isNaN(from)) from = null;
+    var to = parseInt(elTo.value,10); if(isNaN(to)) to = null;
+    var picked = sliceRange(all, from, to);
+    return { start:start, all:all, picked:picked, folder:elFolder.value.trim() };
+  }
+
+  function updatePreview(){
+    var sel = currentAutoSelection();
+    if(sel.picked.length === 0){
+      elPreview.className = "preview";
+      elPreview.textContent = sel.all.length === 0
+        ? "กรอกรายชื่อโมเดลเพื่อดูตัวอย่าง"
+        : "ช่วงที่เลือกไม่มีโมเดล — ตรวจ “จากตัวที่ / ถึงตัวที่” อีกครั้ง";
+      return;
+    }
+    var last = sel.start + sel.picked.length - 1;
+    var first = sel.picked[0], lastModel = sel.picked[sel.picked.length-1];
+    elPreview.className = "preview";
+    elPreview.innerHTML =
+      "จะสร้าง <b>" + sel.picked.length + "</b> สล็อต · เลขสล็อต <b>" + sel.start + "–" + last + "</b><br>" +
+      "<span style='color:#9ca3af'>สล็อต " + sel.start + " = " + esc(first) +
+      " … สล็อต " + last + " = " + esc(lastModel) + "</span>";
+  }
+
+  function onGenerate(){
+    var sel = currentAutoSelection();
+    if(sel.picked.length === 0){
+      toast("ยังไม่มีโมเดลให้สร้าง — ตรวจรายชื่อ/ช่วงอีกครั้ง","err");
+      return;
+    }
+    var created = autoNumber(sel.start, sel.picked, sel.folder);
+    slots = slots.concat(created);
+    save(); render();
+    toast("สร้าง " + created.length + " สล็อตแล้ว (เลข " + sel.start + "–" + (sel.start+created.length-1) + ")","ok");
+  }
+
+  [elStart, elFolder, elModels, elFrom, elTo].forEach(function(el){
+    el.addEventListener("input", updatePreview);
+  });
+  document.getElementById("autoGenBtn").addEventListener("click", onGenerate);
+
+  // ---------- manual add ----------
+  function onManualAdd(){
+    var slotV = parseInt(document.getElementById("mSlot").value,10);
+    var model = document.getElementById("mModel").value.trim();
+    var folder = document.getElementById("mFolder").value.trim();
+    var label = document.getElementById("mLabel").value.trim();
+    if(isNaN(slotV)){ toast("กรุณากรอกเลขสล็อต","err"); return; }
+    if(!model){ toast("กรุณากรอกชื่อโมเดล","err"); return; }
+    slots.push({ id:uid(), slot:slotV, model:model, folder:folder, label:label });
+    save(); render();
+    document.getElementById("mSlot").value = "";
+    document.getElementById("mModel").value = "";
+    document.getElementById("mLabel").value = "";
+    // เก็บโฟลเดอร์ไว้เผื่อกรอกต่อเนื่อง
+    toast("เพิ่มสล็อต " + slotV + " แล้ว","ok");
+  }
+  document.getElementById("manualAddBtn").addEventListener("click", onManualAdd);
+
+  // ---------- clear all ----------
+  var overlay = document.getElementById("confirmOverlay");
+  document.getElementById("clearBtn").addEventListener("click", function(){
+    if(slots.length === 0){ toast("ยังไม่มีข้อมูลให้ลบ","err"); return; }
+    overlay.classList.add("show");
+  });
+  document.getElementById("confirmCancel").addEventListener("click", function(){ overlay.classList.remove("show"); });
+  overlay.addEventListener("click", function(e){ if(e.target === overlay) overlay.classList.remove("show"); });
+  document.getElementById("confirmOk").addEventListener("click", function(){
+    slots = []; save(); render(); overlay.classList.remove("show");
+    toast("ล้างข้อมูลทั้งหมดแล้ว","ok");
+  });
+
+  // ---------- toast ----------
+  var toastEl = document.getElementById("toast");
+  var toastMsg = document.getElementById("toastMsg");
+  var toastTimer = null;
+  function toast(msg, kind){
+    toastMsg.textContent = msg;
+    toastEl.className = "show " + (kind || "");
+    toastEl.querySelector(".ic").textContent = kind === "err" ? "✕" : "✔";
+    if(toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ toastEl.className = ""; }, 2600);
+  }
+
+  function esc(s){
+    return String(s).replace(/[&<>"]/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c];
+    });
+  }
+
+  // ---------- init ----------
+  load();
+  render();
+  updatePreview();
+})();
+</script>
+</body>
+</html>
