@@ -55,6 +55,21 @@
     border:1px solid rgba(168,85,247,.15);
   }
 
+  /* Gender tabs */
+  .gender-tabs{display:flex;gap:8px;margin:0 0 20px;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:6px}
+  .gender-tab{
+    flex:1;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;
+    border:none;background:transparent;color:var(--muted);font-family:inherit;font-weight:700;font-size:15px;
+    padding:11px 14px;border-radius:10px;transition:all .18s;
+  }
+  .gender-tab .ic{font-size:17px}
+  .gender-tab:hover{color:var(--text)}
+  .gender-tab.active{color:#fff}
+  .gender-tab.active.male{background:linear-gradient(135deg,#2563eb,#3b82f6);box-shadow:0 6px 18px rgba(37,99,235,.35)}
+  .gender-tab.active.female{background:linear-gradient(135deg,var(--pink),#f472b6);box-shadow:0 6px 18px rgba(236,72,153,.35)}
+  .gender-tab .cnt{font-size:12px;font-weight:700;background:rgba(0,0,0,.25);padding:1px 8px;border-radius:999px}
+  .gender-tab:not(.active) .cnt{background:rgba(255,255,255,.06)}
+
   /* Panels */
   .grid{display:grid;grid-template-columns:1fr;gap:18px}
   @media(min-width:860px){.grid.two{grid-template-columns:1.15fr .85fr}}
@@ -199,6 +214,15 @@
     · ข้อมูลถูกเก็บไว้ในเบราว์เซอร์เครื่องนี้เอง (เปิดใหม่ไม่หาย)
   </div>
 
+  <div class="gender-tabs">
+    <button class="gender-tab male active" data-gender="male" id="tabMale">
+      <span class="ic">♂</span> ชาย <span class="cnt" id="cntMale">0</span>
+    </button>
+    <button class="gender-tab female" data-gender="female" id="tabFemale">
+      <span class="ic">♀</span> หญิง <span class="cnt" id="cntFemale">0</span>
+    </button>
+  </div>
+
   <div class="grid two">
     <!-- ===== Auto-number ===== -->
     <section class="card">
@@ -326,8 +350,8 @@
 
 <div class="overlay" id="confirmOverlay">
   <div class="modal">
-    <h3>ล้างข้อมูลทั้งหมด?</h3>
-    <p>สล็อตทั้งหมดจะถูกลบและกู้คืนไม่ได้ ต้องการดำเนินการต่อหรือไม่</p>
+    <h3 id="confirmTitle">ล้างข้อมูลทั้งหมด?</h3>
+    <p id="confirmText">สล็อตทั้งหมดจะถูกลบและกู้คืนไม่ได้ ต้องการดำเนินการต่อหรือไม่</p>
     <div class="actions">
       <button class="btn btn-ghost" id="confirmCancel">ยกเลิก</button>
       <button class="btn btn-danger" id="confirmOk">ล้างทั้งหมด</button>
@@ -343,12 +367,15 @@
   // ชิ้นส่วนสำเร็จรูป (พิมพ์เองเพิ่มได้)
   var PARTS = ["หมวก","แว่นตา","ผม","หน้ากาก","เสื้อนอก","เสื้อใน","แขน","มือ/ถุงมือ","กระเป๋า","กางเกง","รองเท้า","เครื่องประดับ"];
 
-  /** @type {{id:string,slot:number,model:string,component:string,folder:string,label:string}[]} */
+  /** @type {{id:string,slot:number,model:string,component:string,folder:string,label:string,gender:string}[]} */
   var slots = [];
 
-  // สถานะค้นหา/ตัวกรอง
+  // สถานะค้นหา/ตัวกรอง/เพศที่กำลังดู
   var searchQuery = "";
   var filterPart = "";
+  var activeGender = "male"; // "male" | "female"
+
+  function genderLabel(g){ return g === "female" ? "หญิง" : "ชาย"; }
 
   // ---------- storage ----------
   function load(){
@@ -357,6 +384,8 @@
       if(raw){ slots = JSON.parse(raw) || []; }
     }catch(e){ slots = []; }
     if(!Array.isArray(slots)) slots = [];
+    // migrate: ข้อมูลเดิมที่ไม่มีเพศ → ให้เป็นชาย
+    slots.forEach(function(s){ if(s.gender !== "female" && s.gender !== "male") s.gender = "male"; });
   }
   function save(){
     try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(slots)); }
@@ -374,7 +403,7 @@
   }
 
   // ไล่เลขสล็อตต่อเนื่องจาก startSlot จับคู่โมเดลตามลำดับ
-  function autoNumber(startSlot, models, folder, component){
+  function autoNumber(startSlot, models, folder, component, gender){
     var out = [];
     for(var i=0;i<models.length;i++){
       out.push({
@@ -383,20 +412,26 @@
         model: models[i],
         component: component || "",
         folder: folder || "",
-        label: ""
+        label: "",
+        gender: gender || "male"
       });
     }
     return out;
   }
 
-  function findDuplicates(){
+  // ตรวจเลขสล็อตซ้ำเฉพาะภายในชุดที่ส่งมา (แยกตามเพศ)
+  function findDuplicates(list){
     var seen = {}, dup = {};
-    slots.forEach(function(s){
+    list.forEach(function(s){
       var k = s.slot;
       if(seen[k]) dup[k] = true;
       seen[k] = true;
     });
     return dup;
+  }
+
+  function slotsOfActiveGender(){
+    return slots.filter(function(s){ return s.gender === activeGender; });
   }
 
   // ---------- render ----------
@@ -416,11 +451,11 @@
     return true;
   }
 
-  // สร้างตัวเลือกในตัวกรองจากชิ้นส่วนที่มีอยู่จริง
-  function rebuildFilterOptions(){
+  // สร้างตัวเลือกในตัวกรองจากชิ้นส่วนที่มีอยู่จริง (เฉพาะเพศที่เลือก)
+  function rebuildFilterOptions(list){
     var sel = document.getElementById("filterComponent");
     var set = {};
-    slots.forEach(function(s){ var c = (s.component||"").trim(); if(c) set[c] = true; });
+    list.forEach(function(s){ var c = (s.component||"").trim(); if(c) set[c] = true; });
     if(filterPart && !set[filterPart]) filterPart = "";
     var parts = Object.keys(set).sort();
     sel.innerHTML = "";
@@ -438,16 +473,25 @@
   function render(){
     // เรียงตามเลขสล็อต
     slots.sort(function(a,b){ return a.slot - b.slot; });
-    var dup = findDuplicates();
-    rebuildFilterOptions();
 
-    var visible = slots.filter(matchesFilter);
+    // อัปเดตตัวนับบนแท็บ (ต่อเพศ)
+    var maleCount = 0, femaleCount = 0;
+    slots.forEach(function(s){ if(s.gender === "female") femaleCount++; else maleCount++; });
+    document.getElementById("cntMale").textContent = maleCount;
+    document.getElementById("cntFemale").textContent = femaleCount;
+
+    // ทำงานเฉพาะเพศที่กำลังดู
+    var genderList = slotsOfActiveGender();
+    var dup = findDuplicates(genderList);
+    rebuildFilterOptions(genderList);
+
+    var visible = genderList.filter(matchesFilter);
 
     tbody.innerHTML = "";
     emptyState.style.display = "none";
     noResults.style.display = "none";
 
-    if(slots.length === 0){
+    if(genderList.length === 0){
       emptyState.style.display = "block";
     }else if(visible.length === 0){
       noResults.style.display = "block";
@@ -496,12 +540,12 @@
       });
     }
 
-    var total = slots.length;
+    var total = genderList.length;
     var badge = document.getElementById("countBadge");
     if((searchQuery || filterPart) && total > 0){
-      badge.innerHTML = "แสดง <b>" + visible.length + "</b> / " + total + " สล็อต";
+      badge.innerHTML = "แสดง <b>" + visible.length + "</b> / " + total + " สล็อต (" + genderLabel(activeGender) + ")";
     }else{
-      badge.innerHTML = "ทั้งหมด <b>" + total + "</b> สล็อต";
+      badge.innerHTML = "ทั้งหมด <b>" + total + "</b> สล็อต (" + genderLabel(activeGender) + ")";
     }
     var dupCount = Object.keys(dup).length;
     var dupBadge = document.getElementById("dupBadge");
@@ -610,10 +654,10 @@
       toast("สร้างได้สูงสุด " + MAX_GEN + " ต่อครั้ง","err");
       return;
     }
-    var created = autoNumber(sel.start, sel.models, sel.folder, sel.component);
+    var created = autoNumber(sel.start, sel.models, sel.folder, sel.component, activeGender);
     slots = slots.concat(created);
     save(); render();
-    toast("สร้าง " + created.length + " สล็อตแล้ว (สล็อต " + sel.start + "–" + (sel.start+created.length-1) + ")","ok");
+    toast("สร้าง " + created.length + " สล็อต (" + genderLabel(activeGender) + ") · สล็อต " + sel.start + "–" + (sel.start+created.length-1),"ok");
   }
 
   [elStart, elFolder, elFrom, elTo, elPad, elPrefix].forEach(function(el){
@@ -630,13 +674,13 @@
     var label = document.getElementById("mLabel").value.trim();
     if(isNaN(slotV)){ toast("กรุณากรอกเลขสล็อต","err"); return; }
     if(!model){ toast("กรุณากรอกชื่อโมเดล","err"); return; }
-    slots.push({ id:uid(), slot:slotV, model:model, component:component, folder:folder, label:label });
+    slots.push({ id:uid(), slot:slotV, model:model, component:component, folder:folder, label:label, gender:activeGender });
     save(); render();
     document.getElementById("mSlot").value = "";
     document.getElementById("mModel").value = "";
     document.getElementById("mLabel").value = "";
     // เก็บชิ้นส่วน + โฟลเดอร์ไว้เผื่อกรอกต่อเนื่อง
-    toast("เพิ่มสล็อต " + slotV + " แล้ว","ok");
+    toast("เพิ่มสล็อต " + slotV + " (" + genderLabel(activeGender) + ") แล้ว","ok");
   }
   document.getElementById("manualAddBtn").addEventListener("click", onManualAdd);
 
@@ -653,15 +697,31 @@
   // ---------- clear all ----------
   var overlay = document.getElementById("confirmOverlay");
   document.getElementById("clearBtn").addEventListener("click", function(){
-    if(slots.length === 0){ toast("ยังไม่มีข้อมูลให้ลบ","err"); return; }
+    if(slotsOfActiveGender().length === 0){ toast("ยังไม่มีข้อมูลให้ลบ","err"); return; }
+    var g = genderLabel(activeGender);
+    document.getElementById("confirmTitle").textContent = "ล้างสล็อตของ " + g + " ทั้งหมด?";
+    document.getElementById("confirmText").textContent = "สล็อตของ " + g + " ทั้งหมดจะถูกลบและกู้คืนไม่ได้ (อีกเพศไม่ถูกแตะ) ต้องการดำเนินการต่อหรือไม่";
     overlay.classList.add("show");
   });
   document.getElementById("confirmCancel").addEventListener("click", function(){ overlay.classList.remove("show"); });
   overlay.addEventListener("click", function(e){ if(e.target === overlay) overlay.classList.remove("show"); });
   document.getElementById("confirmOk").addEventListener("click", function(){
-    slots = []; save(); render(); overlay.classList.remove("show");
-    toast("ล้างข้อมูลทั้งหมดแล้ว","ok");
+    var g = genderLabel(activeGender);
+    slots = slots.filter(function(s){ return s.gender !== activeGender; });
+    save(); render(); overlay.classList.remove("show");
+    toast("ล้างสล็อตของ " + g + " แล้ว","ok");
   });
+
+  // ---------- gender tabs ----------
+  function setGender(g){
+    if(g !== "male" && g !== "female") return;
+    activeGender = g;
+    document.getElementById("tabMale").classList.toggle("active", g === "male");
+    document.getElementById("tabFemale").classList.toggle("active", g === "female");
+    render();
+  }
+  document.getElementById("tabMale").addEventListener("click", function(){ setGender("male"); });
+  document.getElementById("tabFemale").addEventListener("click", function(){ setGender("female"); });
 
   // ---------- toast ----------
   var toastEl = document.getElementById("toast");
