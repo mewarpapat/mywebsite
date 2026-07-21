@@ -196,7 +196,7 @@
     <!-- ===== Auto-number ===== -->
     <section class="card">
       <h2><span class="dot"></span> รันเลขอัตโนมัติ</h2>
-      <p class="hint">กำหนดเลขสล็อตเริ่มต้น + วางรายชื่อโมเดล แล้วระบบจะไล่เลขสล็อตให้ต่อเนื่องอัตโนมัติ</p>
+      <p class="hint">สร้างชื่อโมเดลเป็นเลขไล่ (000, 001, 002…) ตามรูปแบบ FiveM พร้อมจับคู่เลขสล็อตให้อัตโนมัติ</p>
 
       <div class="row c2 field">
         <div>
@@ -209,19 +209,25 @@
         </div>
       </div>
 
-      <div class="field">
-        <label>รายชื่อโมเดล — บรรทัดละ 1 ชื่อ</label>
-        <textarea id="autoModels" placeholder="shirt_01&#10;shirt_02&#10;jacket_black&#10;hoodie_red&#10;..."></textarea>
+      <div class="row c2 field">
+        <div>
+          <label>จากโมเดล (เลขเริ่ม)</label>
+          <input type="number" id="autoFrom" value="0" min="0" />
+        </div>
+        <div>
+          <label>ถึงโมเดล (เลขสุดท้าย)</label>
+          <input type="number" id="autoTo" min="0" placeholder="เช่น 50" />
+        </div>
       </div>
 
       <div class="row c2 field">
         <div>
-          <label>จากตัวที่ (เว้นว่าง = ตัวแรก)</label>
-          <input type="number" id="autoFrom" min="1" placeholder="1" />
+          <label>จำนวนหลัก (เติม 0 หน้า)</label>
+          <input type="number" id="autoPad" value="3" min="1" max="10" />
         </div>
         <div>
-          <label>ถึงตัวที่ (เว้นว่าง = ตัวสุดท้าย)</label>
-          <input type="number" id="autoTo" min="1" placeholder="ทั้งหมด" />
+          <label>คำนำหน้า (ไม่บังคับ)</label>
+          <input type="text" id="autoPrefix" placeholder="เช่น jbib_ (เว้นว่างได้)" />
         </div>
       </div>
 
@@ -324,11 +330,12 @@
   function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
   // ---------- logic ----------
-  function parseModels(text){
-    return String(text||"")
-      .split(/\r?\n/)
-      .map(function(s){ return s.trim(); })
-      .filter(function(s){ return s.length > 0; });
+  // เติมศูนย์หน้าตามจำนวนหลัก เช่น padNum(2,3) = "002"
+  function padNum(n, digits){
+    var neg = n < 0;
+    var s = String(Math.abs(n));
+    while(s.length < digits) s = "0" + s;
+    return (neg ? "-" : "") + s;
   }
 
   // ไล่เลขสล็อตต่อเนื่องจาก startSlot จับคู่โมเดลตามลำดับ
@@ -344,16 +351,6 @@
       });
     }
     return out;
-  }
-
-  // ตัดช่วง from..to (นับจาก 1) จากรายการโมเดล
-  function sliceRange(models, from, to){
-    var start = (from && from >= 1) ? from - 1 : 0;
-    var end = (to && to >= 1) ? to : models.length;
-    if(start < 0) start = 0;
-    if(end > models.length) end = models.length;
-    if(end < start) end = start;
-    return models.slice(start, end);
   }
 
   function findDuplicates(){
@@ -455,52 +452,75 @@
   // ---------- auto-number panel ----------
   var elStart = document.getElementById("autoStart");
   var elFolder = document.getElementById("autoFolder");
-  var elModels = document.getElementById("autoModels");
   var elFrom = document.getElementById("autoFrom");
   var elTo = document.getElementById("autoTo");
+  var elPad = document.getElementById("autoPad");
+  var elPrefix = document.getElementById("autoPrefix");
   var elPreview = document.getElementById("autoPreview");
 
+  var MAX_GEN = 2000; // กันสร้างมากเกินไปต่อครั้ง
+
   function currentAutoSelection(){
-    var start = parseInt(elStart.value,10);
-    if(isNaN(start)) start = 0;
-    var all = parseModels(elModels.value);
-    var from = parseInt(elFrom.value,10); if(isNaN(from)) from = null;
-    var to = parseInt(elTo.value,10); if(isNaN(to)) to = null;
-    var picked = sliceRange(all, from, to);
-    return { start:start, all:all, picked:picked, folder:elFolder.value.trim() };
+    var start = parseInt(elStart.value,10); if(isNaN(start)) start = 0;
+    var from = parseInt(elFrom.value,10); if(isNaN(from)) from = 0;
+    var to = parseInt(elTo.value,10);
+    var pad = parseInt(elPad.value,10); if(isNaN(pad) || pad < 1) pad = 1;
+    var prefix = elPrefix.value; // ไม่ trim เผื่อผู้ใช้ตั้งใจใส่ช่องว่าง
+    var hasTo = !isNaN(to);
+    var models = [];
+    if(hasTo && to >= from){
+      for(var n = from; n <= to && models.length <= MAX_GEN; n++){
+        models.push(prefix + padNum(n, pad));
+      }
+    }
+    return {
+      start:start, from:from, to:to, hasTo:hasTo,
+      count:models.length, models:models, folder:elFolder.value.trim()
+    };
   }
 
   function updatePreview(){
     var sel = currentAutoSelection();
-    if(sel.picked.length === 0){
+    if(!sel.hasTo){
       elPreview.className = "preview";
-      elPreview.textContent = sel.all.length === 0
-        ? "กรอกรายชื่อโมเดลเพื่อดูตัวอย่าง"
-        : "ช่วงที่เลือกไม่มีโมเดล — ตรวจ “จากตัวที่ / ถึงตัวที่” อีกครั้ง";
+      elPreview.textContent = "กรอก “ถึงโมเดล (เลขสุดท้าย)” เพื่อดูตัวอย่าง";
       return;
     }
-    var last = sel.start + sel.picked.length - 1;
-    var first = sel.picked[0], lastModel = sel.picked[sel.picked.length-1];
+    if(sel.to < sel.from){
+      elPreview.className = "preview warn";
+      elPreview.textContent = "“ถึงโมเดล” ต้องไม่น้อยกว่า “จากโมเดล”";
+      return;
+    }
+    if(sel.count > MAX_GEN){
+      elPreview.className = "preview warn";
+      elPreview.textContent = "จำนวนมากเกินไป — สร้างได้สูงสุด " + MAX_GEN + " ต่อครั้ง";
+      return;
+    }
+    var lastSlot = sel.start + sel.count - 1;
     elPreview.className = "preview";
     elPreview.innerHTML =
-      "จะสร้าง <b>" + sel.picked.length + "</b> สล็อต · เลขสล็อต <b>" + sel.start + "–" + last + "</b><br>" +
-      "<span style='color:#9ca3af'>สล็อต " + sel.start + " = " + esc(first) +
-      " … สล็อต " + last + " = " + esc(lastModel) + "</span>";
+      "จะสร้าง <b>" + sel.count + "</b> สล็อต · เลขสล็อต <b>" + sel.start + "–" + lastSlot + "</b><br>" +
+      "<span style='color:#9ca3af'>สล็อต " + sel.start + " = " + esc(sel.models[0]) +
+      " … สล็อต " + lastSlot + " = " + esc(sel.models[sel.models.length-1]) + "</span>";
   }
 
   function onGenerate(){
     var sel = currentAutoSelection();
-    if(sel.picked.length === 0){
-      toast("ยังไม่มีโมเดลให้สร้าง — ตรวจรายชื่อ/ช่วงอีกครั้ง","err");
+    if(!sel.hasTo || sel.to < sel.from || sel.count === 0){
+      toast("ตรวจ “จากโมเดล / ถึงโมเดล” อีกครั้ง","err");
       return;
     }
-    var created = autoNumber(sel.start, sel.picked, sel.folder);
+    if(sel.count > MAX_GEN){
+      toast("สร้างได้สูงสุด " + MAX_GEN + " ต่อครั้ง","err");
+      return;
+    }
+    var created = autoNumber(sel.start, sel.models, sel.folder);
     slots = slots.concat(created);
     save(); render();
-    toast("สร้าง " + created.length + " สล็อตแล้ว (เลข " + sel.start + "–" + (sel.start+created.length-1) + ")","ok");
+    toast("สร้าง " + created.length + " สล็อตแล้ว (สล็อต " + sel.start + "–" + (sel.start+created.length-1) + ")","ok");
   }
 
-  [elStart, elFolder, elModels, elFrom, elTo].forEach(function(el){
+  [elStart, elFolder, elFrom, elTo, elPad, elPrefix].forEach(function(el){
     el.addEventListener("input", updatePreview);
   });
   document.getElementById("autoGenBtn").addEventListener("click", onGenerate);
