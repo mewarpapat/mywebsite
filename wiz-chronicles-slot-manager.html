@@ -114,6 +114,13 @@
     background:#0d0d10;border:1px solid var(--border);padding:7px 13px;border-radius:999px;
   }
   .count-badge b{color:var(--text)}
+  .filterbar{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+  .search-input{flex:1;min-width:220px}
+  .filter-select{
+    min-width:170px;background:#0d0d10;border:1px solid var(--border-strong);color:var(--text);
+    border-radius:10px;padding:10px 12px;font-size:14px;font-family:inherit;cursor:pointer;
+  }
+  .filter-select:focus{outline:none;border-color:var(--purple);box-shadow:0 0 0 3px rgba(168,85,247,.18)}
   .table-scroll{overflow-x:auto;border:1px solid var(--border);border-radius:12px}
   table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:640px}
   thead th{
@@ -231,6 +238,11 @@
         </div>
       </div>
 
+      <div class="field">
+        <label>ชิ้นส่วน (Component) — ใช้กับทุกสล็อตที่สร้าง</label>
+        <input type="text" id="autoComponent" list="partsList" placeholder="เช่น เสื้อนอก, แว่นตา (เว้นว่างได้)" />
+      </div>
+
       <div class="preview" id="autoPreview">กรอกข้อมูลเพื่อดูตัวอย่าง</div>
       <button class="btn btn-primary btn-block" id="autoGenBtn" style="margin-top:12px">➕ สร้างสล็อต</button>
     </section>
@@ -249,6 +261,10 @@
         <input type="text" id="mModel" placeholder="เช่น jacket_black" />
       </div>
       <div class="field">
+        <label>ชิ้นส่วน (Component)</label>
+        <input type="text" id="mComponent" list="partsList" placeholder="เช่น เสื้อนอก, แว่นตา" />
+      </div>
+      <div class="field">
         <label>โฟลเดอร์</label>
         <input type="text" id="mFolder" placeholder="เช่น mp_m_freemode_01" />
       </div>
@@ -265,10 +281,15 @@
     <div class="toolbar">
       <h2 style="margin:0"><span class="dot"></span> รายการสล็อตทั้งหมด</h2>
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-        <span class="count-badge">ทั้งหมด <b id="countAll">0</b> สล็อต</span>
+        <span class="count-badge" id="countBadge">ทั้งหมด <b>0</b> สล็อต</span>
         <span class="count-badge" id="dupBadge" style="display:none;color:#fca5a5;border-color:rgba(239,68,68,.3)">⚠ ซ้ำ <b id="countDup">0</b></span>
         <button class="btn btn-danger btn-sm" id="clearBtn">🗑 ล้างทั้งหมด</button>
       </div>
+    </div>
+
+    <div class="filterbar">
+      <input type="text" id="searchBox" class="search-input" placeholder="🔍 ค้นหา (โมเดล / โฟลเดอร์ / ชิ้นส่วน / หมายเหตุ / เลขสล็อต)" />
+      <select id="filterComponent" class="filter-select"><option value="">ทุกชิ้นส่วน</option></select>
     </div>
 
     <div class="table-scroll">
@@ -277,6 +298,7 @@
           <tr>
             <th style="width:90px">สล็อต</th>
             <th>ชื่อโมเดล</th>
+            <th style="width:150px">ชิ้นส่วน</th>
             <th>โฟลเดอร์</th>
             <th>หมายเหตุ</th>
             <th style="width:60px;text-align:right">ลบ</th>
@@ -289,10 +311,16 @@
       <div class="big">📭</div>
       ยังไม่มีสล็อต — เพิ่มด้วย “รันเลขอัตโนมัติ” หรือ “เพิ่มเอง” ด้านบน
     </div>
+    <div class="empty" id="noResults" style="display:none">
+      <div class="big">🔍</div>
+      ไม่พบสล็อตที่ตรงกับการค้นหา/ตัวกรอง
+    </div>
   </section>
 
   <footer>Wiz Chronicles · Clothing Slot Manager · ทำงานในเครื่อง ไม่ต้องต่ออินเทอร์เน็ต</footer>
 </div>
+
+<datalist id="partsList"></datalist>
 
 <div id="toast"><span class="ic">✔</span><span id="toastMsg"></span></div>
 
@@ -312,8 +340,15 @@
   "use strict";
   var STORAGE_KEY = "wiz-chronicles-clothing-slots";
 
-  /** @type {{id:string,slot:number,model:string,folder:string,label:string}[]} */
+  // ชิ้นส่วนสำเร็จรูป (พิมพ์เองเพิ่มได้)
+  var PARTS = ["หมวก","แว่นตา","ผม","หน้ากาก","เสื้อนอก","เสื้อใน","แขน","มือ/ถุงมือ","กระเป๋า","กางเกง","รองเท้า","เครื่องประดับ"];
+
+  /** @type {{id:string,slot:number,model:string,component:string,folder:string,label:string}[]} */
   var slots = [];
+
+  // สถานะค้นหา/ตัวกรอง
+  var searchQuery = "";
+  var filterPart = "";
 
   // ---------- storage ----------
   function load(){
@@ -339,13 +374,14 @@
   }
 
   // ไล่เลขสล็อตต่อเนื่องจาก startSlot จับคู่โมเดลตามลำดับ
-  function autoNumber(startSlot, models, folder){
+  function autoNumber(startSlot, models, folder, component){
     var out = [];
     for(var i=0;i<models.length;i++){
       out.push({
         id: uid(),
         slot: startSlot + i,
         model: models[i],
+        component: component || "",
         folder: folder || "",
         label: ""
       });
@@ -367,17 +403,56 @@
   var tbody = document.getElementById("tbody");
   var emptyState = document.getElementById("emptyState");
 
+  var noResults = document.getElementById("noResults");
+
+  // สล็อตนี้ผ่านตัวกรอง/ค้นหาไหม
+  function matchesFilter(s){
+    if(filterPart && (s.component || "") !== filterPart) return false;
+    if(searchQuery){
+      var hay = [s.model||"", s.component||"", s.folder||"", s.label||"", String(s.slot)]
+        .join(" ").toLowerCase();
+      if(hay.indexOf(searchQuery) === -1) return false;
+    }
+    return true;
+  }
+
+  // สร้างตัวเลือกในตัวกรองจากชิ้นส่วนที่มีอยู่จริง
+  function rebuildFilterOptions(){
+    var sel = document.getElementById("filterComponent");
+    var set = {};
+    slots.forEach(function(s){ var c = (s.component||"").trim(); if(c) set[c] = true; });
+    if(filterPart && !set[filterPart]) filterPart = "";
+    var parts = Object.keys(set).sort();
+    sel.innerHTML = "";
+    var optAll = document.createElement("option");
+    optAll.value = ""; optAll.textContent = "ทุกชิ้นส่วน";
+    sel.appendChild(optAll);
+    parts.forEach(function(p){
+      var o = document.createElement("option");
+      o.value = p; o.textContent = p;
+      sel.appendChild(o);
+    });
+    sel.value = filterPart;
+  }
+
   function render(){
     // เรียงตามเลขสล็อต
     slots.sort(function(a,b){ return a.slot - b.slot; });
     var dup = findDuplicates();
+    rebuildFilterOptions();
+
+    var visible = slots.filter(matchesFilter);
 
     tbody.innerHTML = "";
+    emptyState.style.display = "none";
+    noResults.style.display = "none";
+
     if(slots.length === 0){
       emptyState.style.display = "block";
+    }else if(visible.length === 0){
+      noResults.style.display = "block";
     }else{
-      emptyState.style.display = "none";
-      slots.forEach(function(s){
+      visible.forEach(function(s){
         var tr = document.createElement("tr");
         if(dup[s.slot]) tr.className = "dup";
 
@@ -397,8 +472,9 @@
         }
         tr.appendChild(tdSlot);
 
-        // model / folder / label
+        // model / component / folder / label
         tr.appendChild(mkEditableCell(s, "model", "ชื่อโมเดล"));
+        tr.appendChild(mkPartCell(s));
         tr.appendChild(mkEditableCell(s, "folder", "โฟลเดอร์"));
         tr.appendChild(mkEditableCell(s, "label", "—"));
 
@@ -420,7 +496,13 @@
       });
     }
 
-    document.getElementById("countAll").textContent = slots.length;
+    var total = slots.length;
+    var badge = document.getElementById("countBadge");
+    if((searchQuery || filterPart) && total > 0){
+      badge.innerHTML = "แสดง <b>" + visible.length + "</b> / " + total + " สล็อต";
+    }else{
+      badge.innerHTML = "ทั้งหมด <b>" + total + "</b> สล็อต";
+    }
     var dupCount = Object.keys(dup).length;
     var dupBadge = document.getElementById("dupBadge");
     if(dupCount > 0){
@@ -448,6 +530,18 @@
     td.appendChild(inp);
     return td;
   }
+  // ช่องชิ้นส่วน (มี datalist ให้เลือก + พิมพ์เองได้) — render ใหม่เพื่ออัปเดตตัวกรอง
+  function mkPartCell(entry){
+    var td = document.createElement("td");
+    var inp = mkInput(entry.component, "", "text");
+    inp.placeholder = "—";
+    inp.setAttribute("list", "partsList");
+    inp.addEventListener("change", function(){
+      entry.component = inp.value.trim(); save(); render();
+    });
+    td.appendChild(inp);
+    return td;
+  }
 
   // ---------- auto-number panel ----------
   var elStart = document.getElementById("autoStart");
@@ -456,6 +550,7 @@
   var elTo = document.getElementById("autoTo");
   var elPad = document.getElementById("autoPad");
   var elPrefix = document.getElementById("autoPrefix");
+  var elComponent = document.getElementById("autoComponent");
   var elPreview = document.getElementById("autoPreview");
 
   var MAX_GEN = 2000; // กันสร้างมากเกินไปต่อครั้ง
@@ -475,7 +570,8 @@
     }
     return {
       start:start, from:from, to:to, hasTo:hasTo,
-      count:models.length, models:models, folder:elFolder.value.trim()
+      count:models.length, models:models,
+      folder:elFolder.value.trim(), component:elComponent.value.trim()
     };
   }
 
@@ -514,7 +610,7 @@
       toast("สร้างได้สูงสุด " + MAX_GEN + " ต่อครั้ง","err");
       return;
     }
-    var created = autoNumber(sel.start, sel.models, sel.folder);
+    var created = autoNumber(sel.start, sel.models, sel.folder, sel.component);
     slots = slots.concat(created);
     save(); render();
     toast("สร้าง " + created.length + " สล็อตแล้ว (สล็อต " + sel.start + "–" + (sel.start+created.length-1) + ")","ok");
@@ -529,19 +625,30 @@
   function onManualAdd(){
     var slotV = parseInt(document.getElementById("mSlot").value,10);
     var model = document.getElementById("mModel").value.trim();
+    var component = document.getElementById("mComponent").value.trim();
     var folder = document.getElementById("mFolder").value.trim();
     var label = document.getElementById("mLabel").value.trim();
     if(isNaN(slotV)){ toast("กรุณากรอกเลขสล็อต","err"); return; }
     if(!model){ toast("กรุณากรอกชื่อโมเดล","err"); return; }
-    slots.push({ id:uid(), slot:slotV, model:model, folder:folder, label:label });
+    slots.push({ id:uid(), slot:slotV, model:model, component:component, folder:folder, label:label });
     save(); render();
     document.getElementById("mSlot").value = "";
     document.getElementById("mModel").value = "";
     document.getElementById("mLabel").value = "";
-    // เก็บโฟลเดอร์ไว้เผื่อกรอกต่อเนื่อง
+    // เก็บชิ้นส่วน + โฟลเดอร์ไว้เผื่อกรอกต่อเนื่อง
     toast("เพิ่มสล็อต " + slotV + " แล้ว","ok");
   }
   document.getElementById("manualAddBtn").addEventListener("click", onManualAdd);
+
+  // ---------- search / filter ----------
+  document.getElementById("searchBox").addEventListener("input", function(e){
+    searchQuery = e.target.value.trim().toLowerCase();
+    render();
+  });
+  document.getElementById("filterComponent").addEventListener("change", function(e){
+    filterPart = e.target.value;
+    render();
+  });
 
   // ---------- clear all ----------
   var overlay = document.getElementById("confirmOverlay");
@@ -575,6 +682,14 @@
   }
 
   // ---------- init ----------
+  (function populateParts(){
+    var dl = document.getElementById("partsList");
+    PARTS.forEach(function(p){
+      var o = document.createElement("option");
+      o.value = p;
+      dl.appendChild(o);
+    });
+  })();
   load();
   render();
   updatePreview();
