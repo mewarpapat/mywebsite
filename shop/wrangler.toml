@@ -1,0 +1,8 @@
+# Cloudflare Pages project config
+name = "arp-shop"
+pages_build_output_dir = "dist"
+compatibility_date = "2025-04-01"
+
+# ตั้งค่า secret ใน Cloudflare Dashboard > Pages > arp-shop > Settings > Variables and Secrets
+#   DISCORD_WEBHOOK_URL = https://discord.com/api/webhooks/...
+# (ห้าม commit ค่า webhook ลงไฟล์นี้)
